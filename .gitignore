@@ -1,27 +1,12 @@
+# Windows:
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-target
-target/*
-*.class
-*.prefs
-*.project
-*.classpath
-/.settings/
-*.component
-*.core.xml
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-# *.jar
-*.war
-*.ear
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-
-# intellij idea
-.idea
-*.iml
-
-# others
-*.pdb
+# Python:
+*.py[cod]
+*.so
+*.egg
+*.egg-info
+dist
+build
