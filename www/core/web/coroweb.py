@@ -7,7 +7,6 @@ import asyncio
 import functools
 import inspect
 import logging
-import os
 from urllib import parse
 
 from aiohttp import web
@@ -112,6 +111,10 @@ class RequestHandler(object):
         for k, v in fr.items():
             RequestHandler._putin_kw(k, v, to)
 
+    @staticmethod
+    def _badRequest(msg):
+        return web.HTTPBadRequest(reason=msg)
+
     async def __call__(self, request: web.Request):
         kw = dict()
         # 有关键字参数才会从qs或post中取数据
@@ -125,20 +128,20 @@ class RequestHandler(object):
             # 取post参数，覆盖qs中的同名参数，并警告
             if request.method == 'POST':
                 if not request.content_type:
-                    return web.HTTPBadRequest('Missing Content-Type.')
+                    return RequestHandler._badRequest('Missing Content-Type.')
                 ct = request.content_type.lower()
                 # json
                 if ct.startswith('application/json'):
                     params = await request.json()
                     if not isinstance(params, dict):
-                        return web.HTTPBadRequest('JSON body must be object.')
+                        return RequestHandler._badRequest('JSON body must be object.')
                     RequestHandler._merge_kw(params, kw)
                 # form
                 elif ct.startswith('application/x-www-form-urlencoded') or ct.startswith('multipart/form-data'):
                     params = await request.post()
                     RequestHandler._merge_kw(params, kw)
                 else:
-                    return web.HTTPBadRequest('Unsupported Content-Type: %s' % ct)
+                    return RequestHandler._badRequest('Unsupported Content-Type: %s' % ct)
         # 只有命名关键字参数需要做剔除
         if not self._has_var_kw_args and self._named_kw_args:
             copy = dict()
@@ -155,7 +158,7 @@ class RequestHandler(object):
         if self._required_named_kw_args:
             for name in self._required_named_kw_args:
                 if name not in kw:
-                    return web.HTTPBadRequest(reason='Missing argument: %s' % name)
+                    return RequestHandler._badRequest('Missing argument: %s' % name)
 
         logging.info('call with args: %s' % str(kw))
         try:
@@ -165,7 +168,7 @@ class RequestHandler(object):
             return dict(error=e.error, data=e.data, message=e.message)
 
 
-def add_static(app: web.Application,path):
+def add_static(app: web.Application, path):
     app.router.add_static('/static/', path)
     logging.info('add static %s => %s' % ('/static/', path))
 
