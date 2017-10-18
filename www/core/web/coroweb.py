@@ -113,7 +113,8 @@ class RequestHandler(object):
 
     @staticmethod
     def _badRequest(msg):
-        return web.HTTPBadRequest(reason=msg)
+        logging.warning(msg)
+        return web.HTTPBadRequest()
 
     async def __call__(self, request: web.Request):
         kw = dict()
@@ -160,7 +161,7 @@ class RequestHandler(object):
                 if name not in kw:
                     return RequestHandler._badRequest('Missing argument: %s' % name)
 
-        logging.info('call with args: %s' % str(kw))
+        logging.info('Request %s %s args: %s' % (request.method, request.path, str(kw)))
         try:
             r = await self._func(**kw)
             return r
