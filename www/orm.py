@@ -6,7 +6,7 @@
 
 import asyncio, aiomysql, logging;
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def log(sql, args=()):
