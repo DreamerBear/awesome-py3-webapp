@@ -4,7 +4,10 @@
 # @Author  : xxc727xxc (xxc727xxc@foxmail.com)
 # @Version : 1.0.0
 
-import asyncio, aiomysql, logging;
+import asyncio
+import logging
+
+import aiomysql
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,7 +17,7 @@ def log(sql, args=()):
 
 
 @asyncio.coroutine
-def create_pool(loop, **kw):
+def create_pool(loop: asyncio.AbstractEventLoop, **kw):
     logging.info('create database connection pool...')
     global __pool
     __pool = yield from aiomysql.create_pool(

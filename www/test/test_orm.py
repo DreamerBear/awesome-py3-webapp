@@ -5,8 +5,8 @@
 # @Version : 1.0.0
 import asyncio
 
-import orm
-from models import User
+from biz.model.models import User
+from core.orm import orm
 
 
 def test(loop):

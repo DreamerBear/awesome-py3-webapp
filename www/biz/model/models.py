@@ -4,8 +4,10 @@
 # @Author  : xxc727xxc (xxc727xxc@foxmail.com)
 # @Version : 1.0.0
 
-import time, uuid
-from orm import Model, StringField, FloatField, BooleanField, TextField
+import time
+import uuid
+
+from core.orm.orm import Model, StringField, FloatField, BooleanField, TextField
 
 
 def next_id():
