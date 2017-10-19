@@ -6,40 +6,15 @@
 import asyncio
 import json
 import logging
-import os
 
 from aiohttp import web
-from jinja2 import Environment, FileSystemLoader
 
 import core.orm.orm as orm
-from core.web.coroweb import add_routes, add_static
 from config import configs
+from core.template.jinja2.init import init_jinja2
+from core.web.coroweb import add_routes, add_static
 
 logging.basicConfig(level=configs.log_level)
-
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-
-
-def init_jinja2(app, **kw):
-    logging.info('init jinja2...')
-    options = dict(
-        autoescape=kw.get('autoescape', True),
-        block_start_string=kw.get('block_start_string', '{%'),
-        block_end_string=kw.get('block_end_string', '%}'),
-        variable_start_string=kw.get('variable_start_string', '{{'),
-        variable_end_string=kw.get('variable_end_string', '}}'),
-        auto_reload=kw.get('auto_reload', True)
-    )
-    path = kw.get('path', None)
-    if path is None:
-        path = os.path.join(BASE_PATH, 'templates')
-    logging.debug('set jinja2 template path: %s' % path)
-    env = Environment(loader=FileSystemLoader(path), **options)
-    filters = kw.get('filters', None)
-    if filters is not None:
-        for name, f in filters.items():
-            env.filters[name] = f
-    app['__template_engine__'] = env
 
 
 async def response_factory(app, handler):
@@ -87,8 +62,8 @@ async def init(loop: asyncio.AbstractEventLoop):
         response_factory
     ])
     init_jinja2(app)
-    add_routes(app, 'biz.controller.handlers')
-    add_static(app, os.path.join(BASE_PATH, 'static'))
+    add_routes(app, configs.handler_module_name)
+    add_static(app, configs.static_path)
     srv = await loop.create_server(app.make_handler(), '127.0.0.1', '9000')
     logging.info('server started at http://127.0.0.1:9000...')
     return srv

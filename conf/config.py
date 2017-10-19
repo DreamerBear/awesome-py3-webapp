@@ -68,4 +68,4 @@ except ImportError:
 configs = toDict(configs)
 
 if __name__ == '__main__':
-    print(configs.getValueWithDefault('db'))
+    print(configs)

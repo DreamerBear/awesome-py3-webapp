@@ -12,6 +12,7 @@ from urllib import parse
 from aiohttp import web
 
 from core.common.apis import APIError
+import core.common.utils as utils
 
 
 def get(path):
@@ -185,12 +186,7 @@ def add_route(app: web.Application, fn):
 
 
 def add_routes(app: web.Application, module_name):
-    n = module_name.rfind('.')
-    if n == (-1):
-        mod = __import__(module_name, globals(), locals())
-    else:
-        name = module_name[n + 1:]
-        mod = getattr(__import__(module_name[:n], globals(), locals(), [name]), name)
+    mod = utils.find_module(module_name)
     for attr in dir(mod):
         if attr.startswith('_'):
             continue
