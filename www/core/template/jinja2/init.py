@@ -46,6 +46,7 @@ def add_filters(env: Environment, module_name):
         if callable(fn):
             filter_name = getattr(fn, '__filter_name__', None)
             if filter_name:
+                logging.debug('jinja2 add filter: %s' % filter_name)
                 env.filters[filter_name] = fn
 
 
