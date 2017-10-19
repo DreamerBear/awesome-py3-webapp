@@ -82,7 +82,7 @@ def has_request_arg(fn):
         if name == 'request':
             found = True
             continue
-        if found and (param.kind != inspect.Parameter.KEYWORD_ONLY and param.kind != inspect.Parameter.VAR_KEYWORD):
+        if found and (param.kind != inspect.Parameter.VAR_POSITIONAL and param.kind != inspect.Parameter.KEYWORD_ONLY and param.kind != inspect.Parameter.VAR_KEYWORD):
             raise ValueError('request param must be the last named param in function: %s%s' % (fn.__name__, str(sig)))
     return found
 
