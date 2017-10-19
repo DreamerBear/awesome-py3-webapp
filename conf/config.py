@@ -8,8 +8,6 @@ import logging
 
 import config_default
 
-logging.basicConfig(level=logging.INFO)
-
 
 class Dict(dict):
     '''

@@ -169,7 +169,7 @@ class RequestHandler(object):
 
 def add_static(app: web.Application, path):
     app.router.add_static('/static/', path)
-    logging.info('add static %s => %s' % ('/static/', path))
+    logging.debug('add static %s => %s' % ('/static/', path))
 
 
 def add_route(app: web.Application, fn):
@@ -179,7 +179,7 @@ def add_route(app: web.Application, fn):
         raise ValueError('@get or @post not defined in %s.' % str(fn))
     if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
         fn = asyncio.coroutine(fn)
-    logging.info(
+    logging.debug(
         'add route %s %s => %s(%s)' % (method, path, fn.__name__, ','.join(inspect.signature(fn).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, fn))
 

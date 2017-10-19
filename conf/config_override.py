@@ -10,7 +10,7 @@ configs used online
 import logging
 
 configs = {
-    "log_level": logging.INFO,
+    # "log_level": logging.INFO,
     "db": {
         "host": "127.0.0.1"
     },

@@ -11,7 +11,7 @@ import aiomysql
 
 
 def log(sql, args=()):
-    logging.info('SQL: %s  args: %s' % (sql, args))
+    logging.debug('SQL: %s  args: %s' % (sql, args))
 
 
 @asyncio.coroutine
@@ -47,7 +47,7 @@ def select(sql, args, size=None):
         if logging.getLogger().isEnabledFor(logging.DEBUG):
             logging.debug('rows return: %s' % rs)
         else:
-            logging.info('rows return: %s' % len(rs))
+            logging.debug('rows return: %s' % len(rs))
         return rs
 
 
@@ -109,7 +109,7 @@ class ModelMetaclass(type):
             return super().__new__(cls, name, bases, attrs)
         # 获取table名称
         tableName = attrs.get('__table__', None) or name
-        logging.info('fond model ; %s (table: %s)' % (name, tableName))
+        logging.debug('fond model ; %s (table: %s)' % (name, tableName))
         # 获取所有的Field和主键名
         prop_column_mappings = dict()
         column_prop_mappings = dict()
@@ -119,7 +119,7 @@ class ModelMetaclass(type):
 
         for k, v in attrs.items():
             if isinstance(v, Field):
-                logging.info('  found mapping: %s ==> %s' % (k, v))
+                logging.debug('  found mapping: %s ==> %s' % (k, v))
                 prop_column_mappings[k] = v
                 if v.column_name:
                     column_prop_mappings[v.column_name] = k
