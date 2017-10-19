@@ -11,9 +11,11 @@ import os
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
+import core.orm.orm as orm
 from core.web.coroweb import add_routes, add_static
+from config import configs
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=configs.log_level)
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -80,9 +82,11 @@ async def response_factory(app, handler):
 
 
 async def init(loop: asyncio.AbstractEventLoop):
+    await orm.create_pool(loop, **configs.db)
     app = web.Application(loop=loop, middlewares=[
         response_factory
     ])
+    init_jinja2(app)
     add_routes(app, 'biz.controller.handlers')
     add_static(app, os.path.join(BASE_PATH, 'static'))
     srv = await loop.create_server(app.make_handler(), '127.0.0.1', '9000')

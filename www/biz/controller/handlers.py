@@ -4,12 +4,17 @@
 # @Author  : xxc727xxc (xxc727xxc@foxmail.com)
 # @Version : 1.0.0
 
+from biz.model.models import User
 from core.web.coroweb import get, post
 
 
 @get('/')
-def get_index():
-    return '<h1>hello, world!</h1>'
+async def get_index():
+    users = await User.findAll()
+    return {
+        '__template__': 'index.html',
+        'users': users
+    }
 
 
 @get('/{name}')

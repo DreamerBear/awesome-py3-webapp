@@ -13,8 +13,6 @@ from aiohttp import web
 
 from core.common.apis import APIError
 
-logging.basicConfig(level=logging.INFO)
-
 
 def get(path):
     " Define decorator @get('/path')"
