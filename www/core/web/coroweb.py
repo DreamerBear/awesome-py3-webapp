@@ -14,6 +14,8 @@ from aiohttp import web
 import core.common.utils as utils
 from core.common.apis import APIError
 
+logger = logging.getLogger(__name__)
+
 
 def get(path):
     " Define decorator @get('/path')"
@@ -82,7 +84,8 @@ def has_request_arg(fn):
         if name == 'request':
             found = True
             continue
-        if found and (param.kind != inspect.Parameter.VAR_POSITIONAL and param.kind != inspect.Parameter.KEYWORD_ONLY and param.kind != inspect.Parameter.VAR_KEYWORD):
+        if found and (
+                            param.kind != inspect.Parameter.VAR_POSITIONAL and param.kind != inspect.Parameter.KEYWORD_ONLY and param.kind != inspect.Parameter.VAR_KEYWORD):
             raise ValueError('request param must be the last named param in function: %s%s' % (fn.__name__, str(sig)))
     return found
 
@@ -102,7 +105,7 @@ class RequestHandler(object):
     @staticmethod
     def _putin_kw(k, v, kw: dict):
         if k in kw:
-            logging.warning('Duplicate arg name: %s' % k)
+            logger.warning('Duplicate arg name: %s' % k)
         kw[k] = v
 
     @staticmethod
@@ -112,7 +115,7 @@ class RequestHandler(object):
 
     @staticmethod
     def _badRequest(msg):
-        logging.warning(msg)
+        logger.warning(msg)
         return web.HTTPBadRequest()
 
     async def __call__(self, request: web.Request):
@@ -160,7 +163,7 @@ class RequestHandler(object):
                 if name not in kw:
                     return RequestHandler._badRequest('Missing argument: %s' % name)
 
-        logging.info('Request %s %s args: %s' % (request.method, request.path, str(kw)))
+        logger.debug('Request %s %s args: %s' % (request.method, request.path, str(kw)))
         try:
             r = await self._func(**kw)
             return r
@@ -170,7 +173,7 @@ class RequestHandler(object):
 
 def add_static(app: web.Application, path):
     app.router.add_static('/static/', path)
-    logging.debug('add static %s => %s' % ('/static/', path))
+    logger.debug('add static %s => %s' % ('/static/', path))
 
 
 def add_route(app: web.Application, fn):
@@ -180,7 +183,7 @@ def add_route(app: web.Application, fn):
         raise ValueError('@get or @post not defined in %s.' % str(fn))
     if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
         fn = asyncio.coroutine(fn)
-    logging.debug(
+    logger.debug(
         'add route %s %s => %s(%s)' % (method, path, fn.__name__, ','.join(inspect.signature(fn).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, fn))
 
@@ -196,44 +199,3 @@ def add_routes(app: web.Application, module_name):
             path = getattr(fn, '__route__', None)
             if method and path:
                 add_route(app, fn)
-
-
-async def response_factory(app, handler):
-    ' aiohttp middlewares  将handler的返回结果格式化为Response'
-
-    async def response(request):
-        r = await handler(request)
-        if isinstance(r, web.StreamResponse):
-            return r
-        if isinstance(r, bytes):
-            resp = web.Response(body=r)
-            resp.content_type = 'application/octet-stream'
-            return resp
-        if isinstance(r, str):
-            if r.startswith('redirect:'):
-                return web.HTTPFound(r[9:])
-            resp = web.Response(body=r.encode())
-            resp.content_type = 'text/html;charset=utf-8'
-            return resp
-        if isinstance(r, dict):
-            template = r.get('__template__')
-            if template is None:
-                resp = web.Response(body=json.dumps(r, ensure_ascii=False, default=lambda o: o.__dict__).encode())
-                resp.content_type = 'application/json;charset=utf-8'
-                return resp
-            else:
-                resp = web.Response(body=app['__template_engine__'].get_template(template).render(**r).encode())
-                resp.content_type = 'text/html;charset=utf-8'
-                return resp
-        if isinstance(r, int) and r >= 100 and r < 600:
-            return web.Response(r)
-        if isinstance(r, tuple) and len(r) == 2:
-            t, m = r
-            if isinstance(t, int) and t >= 100 and t < 600:
-                return web.Response(t, str(m))
-        # default
-        resp = web.Response(body=str(r).encode('utf-8'))
-        resp.content_type = 'text/plain;charset=utf-8'
-        return resp
-
-    return response

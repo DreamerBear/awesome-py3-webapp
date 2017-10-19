@@ -9,14 +9,16 @@ import logging
 
 import aiomysql
 
+logger = logging.getLogger(__name__)
+
 
 def log(sql, args=()):
-    logging.debug('SQL: %s  args: %s' % (sql, args))
+    logger.debug('SQL: %s  args: %s' % (sql, args))
 
 
 @asyncio.coroutine
 def create_pool(loop: asyncio.AbstractEventLoop, **kw):
-    logging.info('create database connection pool...')
+    logger.info('create database connection pool...')
     global __pool
     __pool = yield from aiomysql.create_pool(
         host=kw.get('host', 'localhost'),
@@ -44,10 +46,7 @@ def select(sql, args, size=None):
         else:
             rs = yield from cur.fetchall()
         yield from cur.close()
-        if logging.getLogger().isEnabledFor(logging.DEBUG):
-            logging.debug('rows return: %s' % rs)
-        else:
-            logging.debug('rows return: %s' % len(rs))
+        logger.debug('rows return: %s' % str(rs))
         return rs
 
 
@@ -109,7 +108,7 @@ class ModelMetaclass(type):
             return super().__new__(cls, name, bases, attrs)
         # 获取table名称
         tableName = attrs.get('__table__', None) or name
-        logging.debug('fond model ; %s (table: %s)' % (name, tableName))
+        logger.debug('fond model ; %s (table: %s)' % (name, tableName))
         # 获取所有的Field和主键名
         prop_column_mappings = dict()
         column_prop_mappings = dict()
@@ -119,7 +118,7 @@ class ModelMetaclass(type):
 
         for k, v in attrs.items():
             if isinstance(v, Field):
-                logging.debug('  found mapping: %s ==> %s' % (k, v))
+                logger.debug('  found mapping: %s ==> %s' % (k, v))
                 prop_column_mappings[k] = v
                 if v.column_name:
                     column_prop_mappings[v.column_name] = k
@@ -183,7 +182,7 @@ class Model(dict, metaclass=ModelMetaclass):
             field = self.__mappings__[key]
             if field.default is not None:
                 value = field.default() if callable(field.default) else field.default
-                logging.debug('using default value for %s: %s' % (key, str(value)))
+                logger.debug('using default value for %s: %s' % (key, str(value)))
                 setattr(self, key, value)
         return value
 
@@ -215,7 +214,7 @@ class Model(dict, metaclass=ModelMetaclass):
                 sql.append('?')
                 args.append(limit)
             elif isinstance(limit, tuple) and len(limit) == 2:
-                sql.append('? ?')
+                sql.append('?, ?')
                 args.extend(limit)
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
@@ -224,7 +223,7 @@ class Model(dict, metaclass=ModelMetaclass):
 
     @classmethod
     @asyncio.coroutine
-    def findNum(cls, select_column, where=None, args=None):
+    def count(cls, select_column, where=None, args=None):
         'find number by select and where'
         sql = ['select count(%s) as num from `%s`' % (select_column, cls.__table__)]
         if where:
@@ -250,7 +249,7 @@ class Model(dict, metaclass=ModelMetaclass):
         args.append(self.getValueOrDefault(self.__primary_key__))
         rows = yield from execute(self.__insert__, args)
         if rows != 1:
-            logging.warning('failed to insert record: affected rows: %s' % rows)
+            logger.warning('failed to insert record: affected rows: %s' % rows)
 
     @asyncio.coroutine
     def update(self, **kw):
@@ -263,14 +262,14 @@ class Model(dict, metaclass=ModelMetaclass):
         args.append(self.getValueOrDefault(self.__primary_key__))
         rows = yield from execute(self.__update__, args)
         if rows != 1:
-            logging.warning('failed to update record: affected rows: %s' % rows)
+            logger.warning('failed to update record: affected rows: %s' % rows)
 
     @asyncio.coroutine
     def remove(self):
         args = [self.getValueOrDefault(self.__primary_key__)]
         rows = yield from execute(self.__delete__, args)
         if rows != 1:
-            logging.warning('failed to remove record: affected rows: %s' % rows)
+            logger.warning('failed to remove record: affected rows: %s' % rows)
 
 
 if __name__ == '__main__':
@@ -291,7 +290,7 @@ if __name__ == '__main__':
 
     user = User(id='6', sname='beta')
     tasks = [
-        asyncio.ensure_future(asy_print(User.findNum('id'))),
+        asyncio.ensure_future(asy_print(User.count('id'))),
         asyncio.ensure_future(asy_print(User.find('1'))),
         asyncio.ensure_future(asy_print(User.findAll(where='binary name = ?', args=('bear',), orderBy='id desc'))),
         asyncio.ensure_future(asy_print(user.save())),

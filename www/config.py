@@ -6,8 +6,11 @@
 
 import logging
 
-import config_default
+import conf.config_default as config_default
 
+logging.basicConfig(level=logging.WARNING)
+
+logger = logging.getLogger('core')
 
 class Dict(dict):
     '''
@@ -58,11 +61,11 @@ def override_dict(default: dict, override: dict):
 configs = config_default.configs
 
 try:
-    import config_override
+    import conf.config_override as config_override
 
     configs = override_dict(configs, config_override.configs)
 except ImportError:
-    logging.INFO('config_override not found')
+    logger.warning('config_override not found')
     pass
 
 configs = toDict(configs)

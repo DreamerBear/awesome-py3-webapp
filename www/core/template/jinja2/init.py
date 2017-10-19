@@ -12,6 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 import core.common.utils as utils
 from config import configs, Dict
 
+logger = logging.getLogger(__name__)
 options = Dict(
     autoescape=True,
     block_start_string='{%',
@@ -46,13 +47,13 @@ def add_filters(env: Environment, module_name):
         if callable(fn):
             filter_name = getattr(fn, '__filter_name__', None)
             if filter_name:
-                logging.debug('jinja2 add filter: %s' % filter_name)
+                logger.debug('jinja2 add filter: %s' % filter_name)
                 env.filters[filter_name] = fn
 
 
 def init_jinja2(app):
-    logging.info('init jinja2...')
-    logging.debug('set jinja2 template path: %s' % configs.templates_path)
+    logger.info('init jinja2...')
+    logger.debug('set jinja2 template path: %s' % configs.templates_path)
     env = Environment(loader=FileSystemLoader(configs.templates_path), **options)
     add_filters(env, configs.jinja_filters_module_name)
     app['__template_engine__'] = env

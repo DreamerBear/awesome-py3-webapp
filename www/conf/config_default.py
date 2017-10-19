@@ -10,8 +10,8 @@ default configs used in dev environment
 import logging
 import os
 
-import www.static as static
-import www.templates as templates
+import static
+import templates
 
 configs = {
     "templates_path": os.path.dirname(os.path.abspath(templates.__file__)),
@@ -25,5 +25,9 @@ configs = {
         "user": "www-data",
         "password": "www-data",
         "db": "awesome"
+    },
+    "session": {
+        "secret": "awesome",
+        "name": "apw-session"
     }
 }
