@@ -10,12 +10,9 @@ default configs used in dev environment
 import logging
 import os
 
-import static
-import templates
-
 configs = {
-    "templates_path": os.path.dirname(os.path.abspath(templates.__file__)),
-    "static_path": os.path.dirname(os.path.abspath(static.__file__)),
+    "templates_path": os.path.join(os.path.abspath('.'), 'templates'),
+    "static_path": os.path.join(os.path.abspath('.'), 'static'),
     'handler_module_name': 'www.biz.controller.handlers',
     'jinja_filters_module_name': 'www.core.template.jinja2.filters',
     "log_level": logging.DEBUG,

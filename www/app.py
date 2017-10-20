@@ -14,11 +14,10 @@ from config import configs
 from core.template.jinja2.init import init_jinja2
 from core.web.coroweb import add_routes, add_static
 
-logging.config.fileConfig('conf/logging.conf')
-
+# logging.config.fileConfig('conf/logging.conf')
 logger = logging.getLogger('core')
 log_level = configs.getValueWithDefault('log_level', logging.INFO)
-logger.setLevel(log_level)
+logging.getLogger().setLevel(log_level)
 
 
 async def init(loop: asyncio.AbstractEventLoop):

@@ -8,15 +8,15 @@ import asyncio
 import hashlib
 import json
 import logging
-import re
 import time
 
 from aiohttp import web
 
-from biz.model.models import User, Blog, Comment, next_id
+from biz.model.models import User, Blog, Comment
+from biz.service.UserService import UserService
 from config import configs
 from core.common import markdown2
-from core.common.apis import APIError, APIPermissionError, APIResourceNotFoundError, APIValueError, Page
+from core.common.apis import APIPermissionError, APIResourceNotFoundError, APIValueError, Page
 from core.web.coroweb import get, post
 
 COOKIE_NAME = configs.session.name
@@ -86,11 +86,16 @@ def cookie2user(cookie_str):
         return None
 
 
+@get('/favicon.ico')
+def favicon():
+    return 'redirect:/static/img/favicon.ico'
+
+
 @get('/')
 def index(*, page='1'):
     page_index = get_page_index(page)
     num = yield from Blog.count('id')
-    page = Page(num)
+    page = Page(num, page_index)
     if num == 0:
         blogs = []
     else:
@@ -161,7 +166,6 @@ def signout(request):
     referer = request.headers.get('Referer')
     r = web.HTTPFound(referer or '/')
     r.set_cookie(COOKIE_NAME, '-deleted-', max_age=0, httponly=True)
-    logger.info('user signed out.')
     return r
 
 
@@ -262,25 +266,9 @@ def api_get_users(*, page='1'):
     return dict(page=p, users=users)
 
 
-_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
-_RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
-
-
 @post('/api/users')
 def api_register_user(*, email, name, passwd):
-    if not name or not name.strip():
-        raise APIValueError('name')
-    if not email or not _RE_EMAIL.match(email):
-        raise APIValueError('email')
-    if not passwd or not _RE_SHA1.match(passwd):
-        raise APIValueError('passwd')
-    users = yield from User.findAll('email=?', [email])
-    if len(users) > 0:
-        raise APIError('register:failed', 'email', 'Email is already in use.')
-    uid = next_id()
-    sha1_passwd = '%s:%s' % (uid, passwd)
-    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
-                image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    user = UserService.newUser(email, passwd, name)
     yield from user.save()
     # make session cookie:
     r = web.Response()
@@ -346,3 +334,8 @@ def api_delete_blog(request, *, id):
     blog = yield from Blog.find(id)
     yield from blog.remove()
     return dict(id=id)
+
+
+@get('/test')
+def test():
+    1/0

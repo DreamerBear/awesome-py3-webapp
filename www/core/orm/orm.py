@@ -16,10 +16,14 @@ def log(sql, args=()):
     logger.debug('SQL: %s  args: %s' % (sql, args))
 
 
+def get_transaction():
+    return __transaction
+
+
 @asyncio.coroutine
 def create_pool(loop: asyncio.AbstractEventLoop, **kw):
     logger.info('create database connection pool...')
-    global __pool
+    global __pool, __transaction
     __pool = yield from aiomysql.create_pool(
         host=kw.get('host', 'localhost'),
         port=kw.get('port', 3306),
@@ -27,11 +31,45 @@ def create_pool(loop: asyncio.AbstractEventLoop, **kw):
         password=kw['password'],
         db=kw['db'],
         charset=kw.get('charset', 'utf8'),
-        autocommit=kw.get('autocommit', True),
+        autocommit=kw.get('autocommit', False),
         maxsize=kw.get('maxsize', 10),
         minsize=kw.get('minsize', 1),
         loop=loop
     )
+    __transaction = DBTransaction(__pool)
+
+
+class DBTransaction(object):
+    def __init__(self, pool):
+        self.pool = pool
+
+    async def __aenter__(self):
+        self.conn = await self.pool.acquire()
+        self.cursor = await self.conn.cursor()
+        if self.conn.get_autocommit():
+            await self.conn.autocommit(False)
+            logger.debug('close autocommit for current connection')
+        await self.conn.begin()
+        logger.debug('transaction begin')
+        return self.cursor
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            await self.conn.rollback()
+            logger.debug('transaction rollback')
+        try:
+            await self.conn.commit()
+            logger.debug('transaction commit')
+        except BaseException:
+            await self.conn.rollback()
+            logger.debug('transaction rollback')
+            raise
+        finally:
+            await self.cursor.close()
+            self.pool.release(self.conn)
+            logger.debug('cursor close and connection release')
+            self.conn = None
+            self.cursor = None
 
 
 @asyncio.coroutine
@@ -50,19 +88,15 @@ def select(sql, args, size=None):
         return rs
 
 
-@asyncio.coroutine
-def execute(sql, args):
+async def execute(sql, args, cursor=None):
     log(sql, args)
-    global __pool
-    with (yield from __pool) as conn:
-        try:
-            cur = yield from conn.cursor()
-            yield from cur.execute(sql.replace('?', '%s'), args)
-            affected = cur.rowcount
-            yield from cur.close()
-        except BaseException as e:
-            raise
-        return affected
+    if not cursor:
+        async with __transaction as cur:
+            await cur.execute(sql.replace('?', '%s'), args)
+            return cur.rowcount
+    else:
+        await cursor.execute(sql.replace('?', '%s'), args)
+        return cursor.rowcount
 
 
 class Field(object):
@@ -244,15 +278,15 @@ class Model(dict, metaclass=ModelMetaclass):
         return cls(**cls.__build_res(rs[0]))
 
     @asyncio.coroutine
-    def save(self):
+    def save(self, *, cursor=None):
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
-        rows = yield from execute(self.__insert__, args)
+        rows = yield from execute(self.__insert__, args, cursor)
         if rows != 1:
             logger.warning('failed to insert record: affected rows: %s' % rows)
 
     @asyncio.coroutine
-    def update(self, **kw):
+    def update(self, *, cursor=None, **kw):
         for k, v in kw.items():
             if hasattr(self, k):
                 setattr(self, k, v)
@@ -260,14 +294,14 @@ class Model(dict, metaclass=ModelMetaclass):
                 raise AttributeError(r"'Modal' object has no attribute '%s'" % k)
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
-        rows = yield from execute(self.__update__, args)
+        rows = yield from execute(self.__update__, args, cursor)
         if rows != 1:
             logger.warning('failed to update record: affected rows: %s' % rows)
 
     @asyncio.coroutine
-    def remove(self):
+    def remove(self, *, cursor=None):
         args = [self.getValueOrDefault(self.__primary_key__)]
-        rows = yield from execute(self.__delete__, args)
+        rows = yield from execute(self.__delete__, args, cursor)
         if rows != 1:
             logger.warning('failed to remove record: affected rows: %s' % rows)
 

@@ -14,11 +14,17 @@ from biz.controller.handlers import COOKIE_NAME, cookie2user
 logger = logging.getLogger(__name__)
 
 
+def is_exclude(request: web.Request):
+    return request.path.startswith('/static/') or request.path in ['/favicon.ico']
+
+
 async def auth_factory(app, handler):
     ' aiohttp middlewares  鉴权'
 
     async def auth(request: web.Request):
         logger.debug('check user: %s %s' % (request.method, request.path))
+        if is_exclude(request):
+            return await handler(request)
         request.__user__ = None
         cookie_str = request.cookies.get(COOKIE_NAME)
         if cookie_str:
@@ -37,8 +43,9 @@ async def log_factory(app, handler):
     'aiohttp middlewares log'
 
     async def log(request: web.Request):
-        user_email = getattr(request.__user__, 'email', None)
-        logger.info('Request %s %s user: %s' % (request.method, request.path_qs, user_email))
+        if not is_exclude(request):
+            user_email = getattr(request.__user__, 'email', None)
+            logger.info('Request %s %s user: %s' % (request.method, request.path_qs, user_email))
         return await handler(request)
 
     return log
