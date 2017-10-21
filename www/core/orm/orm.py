@@ -17,13 +17,13 @@ def log(sql, args=()):
 
 
 def get_transaction():
-    return __transaction
+    return DBTransaction(__pool)
 
 
 @asyncio.coroutine
 def create_pool(loop: asyncio.AbstractEventLoop, **kw):
     logger.info('create database connection pool...')
-    global __pool, __transaction
+    global __pool
     __pool = yield from aiomysql.create_pool(
         host=kw.get('host', 'localhost'),
         port=kw.get('port', 3306),
@@ -36,7 +36,6 @@ def create_pool(loop: asyncio.AbstractEventLoop, **kw):
         minsize=kw.get('minsize', 1),
         loop=loop
     )
-    __transaction = DBTransaction(__pool)
 
 
 class DBTransaction(object):
@@ -91,7 +90,7 @@ def select(sql, args, size=None):
 async def execute(sql, args, cursor=None):
     log(sql, args)
     if not cursor:
-        async with __transaction as cur:
+        async with get_transaction() as cur:
             await cur.execute(sql.replace('?', '%s'), args)
             return cur.rowcount
     else:
