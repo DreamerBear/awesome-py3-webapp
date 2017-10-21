@@ -13,8 +13,8 @@ import os
 configs = {
     "templates_path": os.path.join(os.path.abspath('.'), 'templates'),
     "static_path": os.path.join(os.path.abspath('.'), 'static'),
-    'handler_module_name': 'www.biz.controller.handlers',
-    'jinja_filters_module_name': 'www.core.template.jinja2.filters',
+    'handler_module_name': 'biz.controller.handlers',
+    'jinja_filters_module_name': 'core.template.jinja2.filters',
     "log_level": logging.DEBUG,
     "db": {
         "host": "localhost",
