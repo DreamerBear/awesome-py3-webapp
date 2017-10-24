@@ -1,0 +1,2 @@
+sudo apt-get install nginx supervisor python3 mysql-server
+sudo pip3 install jinja2 aiomysql aiohttp werkzeug greenlet
