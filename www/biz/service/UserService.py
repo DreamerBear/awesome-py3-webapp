@@ -39,17 +39,28 @@ class UserService(object):
         return user
 
     @classmethod
-    async def makeAdmin(cls, users: tuple):
-        async with orm.get_transaction() as cursor:
-            for user in users:
-                if not isinstance(user, User):
-                    raise ValueError('type must be user')
-                users = await User.findAll('email=?', [user.email])
-                if len(users) > 0:
-                    await user.update(admin=True, cursor=cursor)
-                else:
-                    user.admin = True
-                    await user.save(cursor=cursor)
+    @orm.transaction
+    async def makeAdmins(cls, users: tuple):
+        print(11, dict(orm.conn_local))
+        for user in users:
+            await cls.makeAdmin(user)
+
+    @classmethod
+    @orm.transaction
+    async def makeAdmin(cls, user):
+        print(1, dict(orm.conn_local))
+        if not isinstance(user, User):
+            raise ValueError('type must be user')
+        print(2, dict(orm.conn_local))
+        users = await User.findAll('email=?', [user.email])
+        if len(users) > 0:
+            print(3, dict(orm.conn_local))
+            await user.update(admin=True)
+        else:
+            user.admin = True
+            print(4, dict(orm.conn_local))
+            await user.save()
+        print(5, dict(orm.conn_local))
 
     @classmethod
     def makePasswd(cls, email, passwd):
@@ -66,12 +77,15 @@ if __name__ == '__main__':
 
 
     async def test():
-        admin1 = await UserService.newUser('admin1@123.com', UserService.makePasswd('admin1@123.com', '123456'),
-                                           'admin1')
-        admin2 = await UserService.newUser('admin2@123.com', UserService.makePasswd('admin2@123.com', '123456'),
-                                           'admin1')
-        admin3 = 'bug'
-        await UserService.makeAdmin((admin1, admin2, admin3))
+        admin1 = await UserService.newUser('admin3@123.com', UserService.makePasswd('admin3@123.com', '123456'),
+                                           'admin3')
+        admin2 = await UserService.newUser('admin4@123.com', UserService.makePasswd('admin4@123.com', '123456'),
+                                           'admin4')
+        admin3 = await UserService.newUser('admin5@123.com', UserService.makePasswd('admin5@123.com', '123456'),
+                                           'admin5')
+        admin4 = 'None'
+        await UserService.makeAdmins((admin1, admin2, admin3, admin4))
+        print(55, dict(orm.conn_local))
 
 
     loop = asyncio.get_event_loop()
