@@ -86,11 +86,6 @@ def cookie2user(cookie_str):
         return None
 
 
-@get('/favicon.ico')
-def favicon():
-    return 'redirect:/static/img/favicon.ico'
-
-
 @get('/')
 def index(*, page='1'):
     page_index = get_page_index(page)
@@ -267,9 +262,9 @@ def api_get_users(*, page='1'):
 
 
 @post('/api/users')
-def api_register_user(*, email, name, passwd):
-    user = UserService.newUser(email, passwd, name)
-    yield from user.save()
+async def api_register_user(*, email, name, passwd):
+    user = await UserService.newUser(email, passwd, name)
+    await user.save()
     # make session cookie:
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
@@ -338,4 +333,4 @@ def api_delete_blog(request, *, id):
 
 @get('/test')
 def test():
-    1/0
+    1 / 0
