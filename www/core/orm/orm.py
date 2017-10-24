@@ -109,13 +109,13 @@ def select(sql, args, size=None):
         with (yield from __pool) as conn:
             cur = yield from conn.cursor(aiomysql.DictCursor)
             yield from cur.execute(sql.replace('?', '%s'), args or ())
-            rs = fetchRs(cur, size)
+            rs = yield from fetchRs(cur, size)
             yield from cur.close()
             logger.debug('rows return: %s' % str(rs))
             return rs
     else:
         yield from cur.execute(sql.replace('?', '%s'), args or ())
-        rs = fetchRs(cur, size)
+        rs = yield from fetchRs(cur, size)
         logger.debug('rows return: %s' % str(rs))
         return rs
 
