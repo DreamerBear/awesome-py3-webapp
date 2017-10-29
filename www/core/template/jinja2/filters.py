@@ -4,7 +4,7 @@
 # @Author  : xxc727xxc (xxc727xxc@foxmail.com)
 # @Version : 1.0.0
 
-import datetime
+from datetime import datetime
 import time
 
 from core.template.jinja2.init import jinja_filter
